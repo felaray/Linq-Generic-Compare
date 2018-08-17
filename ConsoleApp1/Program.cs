@@ -1,9 +1,73 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 
 namespace ConsoleApp1
 {
+    #region Class
+    public class SampleClass
+    {
+        public Guid ID { get; set; } = Guid.NewGuid();
+        public string Title { get; set; }
+        public DateTime Date { get; set; } = DateTime.UtcNow;
+    }
+
+    public class SampleObject
+    {
+        public Guid ID { get; set; } = Guid.NewGuid();
+        public string Title { get; set; }
+        public DateTime Date { get; set; } = DateTime.UtcNow;
+        public SampleClass sampleClass { get; set; }
+
+    }
+
+    #endregion
+
+    public class QueryClassProperty<T>
+    {
+        public int GetSystemPropertyCount
+        {
+            get
+            {
+                return GetSystemProperty.Count();
+            }
+        }
+        public int GetCustomPropertyCount
+        {
+            get
+            {
+                return GetCustomProperty.Count();
+            }
+        }
+        public List<Type> GetSystemProperty
+        {
+            get
+            {
+                return typeof(T).GetProperties(
+                                         BindingFlags.DeclaredOnly |
+                                         BindingFlags.Public |
+                                         BindingFlags.Instance).ToList().Select(c => c.PropertyType).ToList();
+            }
+        }
+
+        public List<Type> GetCustomProperty
+        {
+            get
+            {
+                var result = typeof(T).GetProperties(
+                                         BindingFlags.DeclaredOnly |
+                                         BindingFlags.Public |
+                                         BindingFlags.Instance)
+                                         .Select(c => c.PropertyType)
+                                         .Where(c => !c.FullName.Contains("System"));
+
+                return result.ToList();
+            }
+        }
+    }
+
     public class Result<T>
     {
 
@@ -20,6 +84,7 @@ namespace ConsoleApp1
 
         public Result<T> Compare(List<T> Source, List<T> Data)
         {
+
             return new Result<T>
             {
                 Add = Data.Except(Source).ToList(),
@@ -42,18 +107,19 @@ namespace ConsoleApp1
             Console.WriteLine("All");
             result.NewList.ForEach(c => Console.Write(c + ","));
             Console.WriteLine();
+            Console.WriteLine(string.Format("Property", typeof(T)));
+            foreach (var c in new QueryClassProperty<T>().GetSystemProperty)
+            {
+                Console.WriteLine(c + ",");
+            }
+            Console.WriteLine();
         }
     }
-    public class CustomClass
-    {
-        public Guid ID { get; set; } = Guid.NewGuid();
-        public string Title { get; set; }
-        public DateTime Date { get; set; } = DateTime.UtcNow;
-    }
+
 
     class Program
     {
-        #region Default class
+        #region Sample:Default class 
         static private void Keyin()
         {
 
@@ -87,31 +153,53 @@ namespace ConsoleApp1
             new Result<DateTime>().CompareOnConsole(Source, Data);
         }
         #endregion
+        #region Sample:Custom class 
         static private void Sample_CustomClass()
         {
-            var updateItem = new CustomClass
+            var updateItem = new SampleClass
             {
                 Title = "hihi"
             };
 
-            var Source = new List<CustomClass>
+            var Source = new List<SampleClass>
             {
                 //dafault
                 updateItem,
                 //remove
-                new CustomClass{ ID=Guid.NewGuid(), Title="haha"},
+                new SampleClass{ ID=Guid.NewGuid(), Title="haha"},
             };
-            var Data = new List<CustomClass>
+            var Data = new List<SampleClass>
             {
                 //dafault      
                 updateItem,
                 //new
-                new CustomClass{ID=Guid.NewGuid(), Title="gogo"},
+                new SampleClass{ID=Guid.NewGuid(), Title="gogo"},
             };
-            var result = new Result<CustomClass>().Compare(Source, Data);
+            var result = new Result<SampleClass>().Compare(Source, Data);
         }
+        static private void Sample_QuerySystemClass()
+        {
+            var result = new QueryClassProperty<SampleObject>().GetSystemProperty;
+            foreach (var item in result)
+            {
+                Console.WriteLine(item.FullName);
+            }
+        }
+        static private void Sample_QueryCustomClass()
+        {
+
+            var result = new QueryClassProperty<SampleObject>().GetCustomProperty;
+            foreach (var item in result)
+            {
+                Console.WriteLine(item.FullName);
+            }
+        }
+        #endregion
+
+
         static void Main(string[] args)
         {
+
             bool escape = false;
             while (escape == false)
             {
@@ -119,7 +207,9 @@ namespace ConsoleApp1
                 Console.WriteLine("1 ) keyin");
                 Console.WriteLine("2 ) Sample:String");
                 Console.WriteLine("3 ) Sample:Datetime");
-                Console.WriteLine("4 ) Sample:CustomClass");
+                Console.WriteLine("4 ) Sample:SampleClass");
+                Console.WriteLine("5 ) Quert system class in T");
+                Console.WriteLine("6 ) Quert custom class in T");
                 Console.WriteLine("=======================");
                 switch (Console.ReadKey(true).Key)
                 {
@@ -134,6 +224,12 @@ namespace ConsoleApp1
                         break;
                     case ConsoleKey.D4:
                         Sample_CustomClass();
+                        break;
+                    case ConsoleKey.D5:
+                        Sample_QuerySystemClass();
+                        break;
+                    case ConsoleKey.D6:
+                        Sample_QueryCustomClass();
                         break;
                     default:
                         escape = true;
