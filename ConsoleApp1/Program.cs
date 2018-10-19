@@ -6,13 +6,25 @@ using System.Reflection;
 
 namespace ConsoleApp1
 {
-
-    public class Result<T>
+    public interface ITree<T>
+    {
+        string Test(T obj);
+    }
+    public class Tree<T>:ITree<T>
     {
 
+        public List<T> Father { get; set; }
+        public List<T> Child { get; set; }
+        public List<T> Node { get; set; }
+
+        public string Test(T obj)
+        {
+            throw new NotImplementedException();
+        }
+    }
+    public class Result<T>
+    {
         #region Basic
-        public Type FatherNode { get; set; }
-        public T Type { get; }
         private List<T> Add { get; set; }
         private List<T> Update { get; set; }
         private List<T> Delete { get; set; }
@@ -24,101 +36,132 @@ namespace ConsoleApp1
             }
         }
 
+        public Tree<T> Tree { get; set; }
+
+        private IEnumerable<Type> Property
+        {
+            get
+            {
+                return typeof(T).GetProperties(
+                                         BindingFlags.DeclaredOnly |
+                                         BindingFlags.Public |
+                                         BindingFlags.Instance).ToList().Select(c => c.PropertyType);
+            }
+        }
+        private IEnumerable<Type> CustomProperty
+        {
+            get
+            {
+                return typeof(T).GetProperties(
+                                             BindingFlags.DeclaredOnly |
+                                             BindingFlags.Public |
+                                             BindingFlags.Instance)
+                                             .Select(c => c.PropertyType)
+                                             .Where(c => !c.FullName.Contains("System"));
+
+            }
+        }
         #endregion
 
         #region Method
         public Result<T> Compare(List<T> Source, List<T> Data, bool? deep = false)
         {
-            var result = new Result<T>
+            if (deep == false)
             {
-                Add = Data.Except(Source).ToList(),
-                Update = Source.Intersect(Data).ToList(),
-                Delete = Source.Except(Data).ToList()
-            };
+                var result = new Result<T>
+                {
+                    Add = Data.Except(Source).ToList(),
+                    Update = Source.Intersect(Data).ToList(),
+                    Delete = Source.Except(Data).ToList()
+                };
+                return result;
+            }
+            else
+            {
+                foreach (var Item in GetProperty(true))
+                {
 
-            return result;
+                }
+                return null;
+            }
+        }
 
+        public IEnumerable<Type> GetProperty(bool CustomOnly = false)
+        {
+            if (CustomOnly == false)
+                return Property;
+            else
+                return CustomProperty;
         }
 
         #endregion
-
-        
     }
 
-
-
-    public class Tree
+    public class C<T> : Result<T>
     {
-        private Type TargetClass { get; set; }
-        private List<Type> Property
-        {
-            get
-            {
-                return TargetClass.GetProperties(
-                                         BindingFlags.DeclaredOnly |
-                                         BindingFlags.Public |
-                                         BindingFlags.Instance).ToList().Select(c => c.PropertyType).ToList();
-            }
-        }
-        private List<Type> CustomProperty
-        {
-            get
-            {
-                var result = TargetClass.GetProperties(
-                                         BindingFlags.DeclaredOnly |
-                                         BindingFlags.Public |
-                                         BindingFlags.Instance)
-                                         .Select(c => c.PropertyType)
-                                         .Where(c => !c.FullName.Contains("System"));
-
-                return result.ToList();
-            }
-        }
-        //private T GetPropValue(object src, string propName)
+        //public Result<T> result { get; set; }
+        private int count = 0;
+        //public Dictionary<Type, T> Get(T Node)
         //{
-        //return (T) Convert.ChangeType(readData, typeof(T));
-        //    return src.GetType().GetProperty(propName).GetValue(src, null);
+        //    TargetClass = Node.GetType();
+        //    //加入
+        //    Book.Add(TargetClass, Node);
+        //    //尋找
+        //    if (CustomProperty.Count() > 0)
+        //    {
+        //        //遍尋子屬性
+        //        foreach (var item in CustomProperty)
+        //        {
+        //            var O = Node.GetType().GetProperty(item.Name);
+        //            var OV = O.GetValue(Node, null);
+        //            //var OT = O.GetType();
+        //            ////(O.GetType())Convert.ChangeType(O, O.GetType());
+        //            //var R = Convert.ChangeType(O, OT);
+        //            //var s = Tree < OT >
+        //            Get(OV);
+        //        }
+
+        //    }
+
+        //    return Book;
         //}
-        private Dictionary<Type, object> Book { get; set; } = new Dictionary<Type, object>();
-        public Dictionary<Type, object> Get(object Node)
+
+
+
+        public void Get(Result<T> Data)
         {
-            TargetClass = Node.GetType();
-            //加入
-            Book.Add(TargetClass, Node);
-            //尋找
-            if (CustomProperty.Count() > 0)
+
+            var PropList = Data.GetProperty(true);
+            if (PropList.Count() > 0)
             {
-                //遍尋子屬性
-                foreach (var item in CustomProperty)
+
+                foreach (var Item in PropList)
                 {
-                    var O = Node.GetType().GetProperty(item.Name);
-                    var OV = O.GetValue(Node, null);
-                    //var OT = O.GetType();
-                    ////(O.GetType())Convert.ChangeType(O, O.GetType());
+                    var O = Data.GetType().GetProperty(Item.Name).GetValue(Data, null);
+                    var OT = Convert.ChangeType(O, O.GetType());
                     //var R = Convert.ChangeType(O, OT);
                     //var s = Tree < OT >
-                    Get(OV);
+                    //Get(OV);
                 }
+
 
             }
 
-            return Book;
         }
-
-
     }
-
-
 
     class Program
     {
 
+        static void Lab()
+        {
+            var r = new C<Bank>();
+            new C<Bank>().Get(r);
 
 
-
+        }
         static void Main(string[] args)
         {
-
             bool escape = false;
             while (escape == false)
             {
